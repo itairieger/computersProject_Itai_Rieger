@@ -21,78 +21,51 @@ def plot_linear_fit(x, y, dx, dy, a, b, xlabel, ylabel):
     y_plot = [a * x1 + b, a * x2 + b]
     plt.plot(x_plot, y_plot, color='red', zorder=1)
     plt.errorbar(x, y, yerr=dy, xerr=dx, ls='none', ecolor='blue')
-    plt.xlabel(xlabel = xlabel)
-    plt.ylabel(ylabel = ylabel)
+    plt.xlabel(xlabel=xlabel)
+    plt.ylabel(ylabel=ylabel)
     # plt.show()
     plt.savefig("linear_fit.svg")
 
 
-def fit_linear(filename):
+def get_data(filename):
+    """
+    Gets filename and returns 2D array of data split by new lines and ' ' (spaces) and labels
+    """
     my_file = open(filename, 'r')
-    check_r_or_c = my_file.readline()
-    check_r_or_c_list = check_r_or_c.split()  # make a list
-    temp = check_r_or_c_list[1]  # check second variable in list
-    temp = temp.lower()  # lower case
-    is_column = 0
-    if temp == 'x' or temp == 'dx' or temp == 'y' or temp == 'dy':
-        is_column = 1
-    x_str = []
-    y_str = []
-    dx_str = []
-    dy_str = []
-    x = []
-    y = []
-    dx = []
-    dy = []
-    data_list = check_r_or_c_list[:]
-    # in case row
-    if is_column == 0:
-        for i in range(4):
-            data_list[0] = data_list[0].lower()
-            if data_list[0] == 'x':
-                for j in range(1, len(data_list)):
-                    x_str.append(data_list[j])
-            elif data_list[0] == 'y':
-                for j in range(1, len(data_list)):
-                    y_str.append(data_list[j])
-            elif data_list[0] == 'dx':
-                for j in range(1, len(data_list)):
-                    dx_str.append(data_list[j])
-            elif data_list[0] == 'dy':
-                for j in range(1, len(data_list)):
-                    dy_str.append(data_list[j])
-            data = my_file.readline()
-            data_list = data.split()
-    # in case columns
-    elif is_column == 1:
-        column_list = []
-        for i in data_list:
-            temp = i.lower()
-            column_list.append(temp)
-        x_index = column_list.index('x')
-        y_index = column_list.index('y')
-        dx_index = column_list.index('dx')
-        dy_index = column_list.index('dy')
-        data = my_file.readline()
-        data_list = data.split()
-        while data_list != []:
-            if len(data_list) < 4:
-                print('Input file error: Data lists are not the same length.\n')
-                exit(1)
-            x_str.append(data_list[x_index])
-            y_str.append(data_list[y_index])
-            dx_str.append(data_list[dx_index])
-            dy_str.append(data_list[dy_index])
-            data = my_file.readline()
-            data_list = data.split()
-    for i in x_str:
-        x.append(float(i))
-    for i in y_str:
-        y.append(float(i))
-    for i in dx_str:
-        dx.append(float(i))
-    for i in dy_str:
-        dy.append(float(i))
+    data = my_file.read().lower()
+    table, labels = data.split("\n\n", 1)
+    rows = table.split("\n")
+    for i in range(len(rows)):
+        row = rows[i]
+        rows[i] = row.split(" ")
+
+    N = len(rows[0])
+    if any(map(lambda row: len(row) != N, rows)):
+        print('Input file error: Data lists are not the same length.\n')
+        exit(1)
+
+    labels = labels.strip().split("\n")
+    x_label = labels[0][8:]
+    y_label = labels[1][8:]
+
+    return rows, x_label, y_label
+
+
+def fit_linear(filename):
+    table, xlabel, ylabel = get_data(filename)
+
+    is_column = table[0][1] in ['x', 'dx', 'y', 'dy']
+    if is_column:  # Flip table to rows
+        table = zip(*table)
+
+    # All this splitting into x, y, dx, dy move to another function
+    data = {}
+    for row in table:
+        data[row[0]] = map(float, row[1:])
+
+    x = data['x']
+    y = data['y']
+
     # values
     N = len(x)
     Ny = len(y)
@@ -100,20 +73,19 @@ def fit_linear(filename):
     Ndy = len(dy)
     # checking errors
 
-    tx = 0  # checks if all dx are pos
-    ty = 0  # checks if all dy are pos
-    for i in dx:
-        if i <= 0:
-            tx = 1
-    for i in dy:
-        if i <= 0:
-            ty = 1
-    if N != Ny or N != Ndx or N != Ndy:
-        print('Input file error: Data lists are not the same length.\n')
-        exit(1)
-    elif ty == 1 or tx == 1:
+
+    # Extract this function outside of linear_fit
+    def any_negative(array):
+        for point in array:
+            if point <= 0:
+                return True
+        return False
+
+    if any_negative(dx) or any_negative(dy):
         print('Input file error: Not all uncertainties are positive.\n')
         exit(1)
+
+    # Extract to another function
     xy = []
     for i in range(N):
         xy.append(x[i] * y[i])
@@ -131,6 +103,7 @@ def fit_linear(filename):
     x_square_hat = hatfunc(x_square, dy)
     dy_square_hat = hatfunc(dy_square, dy)
 
+    # Extract calculations to another function
     # outputs
     a = (xyhat - xhat * yhat) / (x_square_hat - xhat * xhat)
     da_square = dy_square_hat / (N * (x_square_hat - xhat * xhat))
@@ -150,15 +123,9 @@ def fit_linear(filename):
     print('chi2 = ' + str(chi_square))
     print('chi2_reduced = ' + str(chi_square_reduced))
 
-    xlabel = my_file.readline()
-    ylabel = my_file.readline()
-    xlabel = xlabel[8:-1]
-    ylabel = ylabel[8:-1]
-
 
     plot_linear_fit(x,y,dx,dy,a,b,xlabel,ylabel)
 
 
-
-
-fit_linear("input.txt")
+if __name__ == "__main__":
+    fit_linear("input.txt")

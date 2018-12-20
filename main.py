@@ -1,6 +1,5 @@
-# all together
 from math import *
-
+import matplotlib.pyplot as plt
 
 def hatfunc(vec, dy):
     one_over_dy_square = []
@@ -13,6 +12,19 @@ def hatfunc(vec, dy):
     bottomn = sum(one_over_dy_square)
     hat = top / bottomn
     return hat
+
+
+def plot_linear_fit(x, y, dx, dy, a, b, xlabel, ylabel):
+    x1 = min(x)
+    x2 = max(x)
+    x_plot = [x1, x2]
+    y_plot = [a * x1 + b, a * x2 + b]
+    plt.plot(x_plot, y_plot, color='red', zorder=1)
+    plt.errorbar(x, y, yerr=dy, xerr=dx, ls='none', ecolor='blue')
+    plt.xlabel(xlabel = xlabel)
+    plt.ylabel(ylabel = ylabel)
+    # plt.show()
+    plt.savefig("linear_fit.svg")
 
 
 def fit_linear(filename):
@@ -137,6 +149,16 @@ def fit_linear(filename):
     print('b = ' + str(b) + ' +- ' + str(db))
     print('chi2 = ' + str(chi_square))
     print('chi2_reduced = ' + str(chi_square_reduced))
+
+    xlabel = my_file.readline()
+    ylabel = my_file.readline()
+    xlabel = xlabel[8:-1]
+    ylabel = ylabel[8:-1]
+
+
+    plot_linear_fit(x,y,dx,dy,a,b,xlabel,ylabel)
+
+
 
 
 fit_linear("input.txt")

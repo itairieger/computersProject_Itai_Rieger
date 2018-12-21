@@ -35,7 +35,7 @@ def plot_linear_fit(x, y, dx, dy, a, b, xlabel, ylabel):
 
 def get_data(filename):
     """
-    Gets filename and returns 2D array of data split by new lines and ' ' (spaces) and labels
+    Gets filename and returns: 1. 2D array of data split by new lines and ' ' (spaces) 2. axes labels
     """
     my_file = open(filename, 'r')
     data = my_file.read().lower()
@@ -44,7 +44,7 @@ def get_data(filename):
     for i in range(len(rows)):
         row = rows[i]
         rows[i] = row.split(" ")
-
+    # check if all vectors have the same length
     N = len(rows[0])
     for row in rows:
         if len(row) != N:
@@ -69,7 +69,7 @@ def change_to_float(array):
 
 def get_vectors(table):
     """
-    gets table with data and returns x,y,dx,dy
+    gets table with data and returns x,y,dx,dy in float type
     """
     data = {}
     for row in table:
@@ -85,7 +85,7 @@ def get_vectors(table):
 
 def any_negative(array):
     """
-    checks if there are negative or 0 in an array
+    checks if there are negative values or 0 in an array
     """
     for point in array:
         if point <= 0:
@@ -94,7 +94,7 @@ def any_negative(array):
 
 def get_a_and_b(xhat, yhat, xyhat, x_square_hat, dy_square_hat,N):
     """
-    returns values and uncertainties of a and b
+    calculate and returns values and uncertainties of a and b
     """
     a = (xyhat - xhat * yhat) / (x_square_hat - xhat * xhat)
     da_square = dy_square_hat / (N * (x_square_hat - xhat * xhat))
@@ -122,7 +122,7 @@ def fit_linear(filename):
         print('Input file error: Not all uncertainties are positive.\n')
         exit(1)
 
-    # get values
+    # get values of xy, x_square and dy_square
     xy = []
     for i in range(N):
         xy.append(x[i] * y[i])
@@ -133,7 +133,7 @@ def fit_linear(filename):
     for i in dy:
         dy_square.append(i ** 2)
 
-    # hat values
+    # hat values: meaning (sum(vec[i]/dy[i]**2)/sum(1/dy[i]**2))
     xhat = hatfunc(x, dy)
     yhat = hatfunc(y, dy)
     xyhat = hatfunc(xy, dy)
@@ -151,13 +151,13 @@ def fit_linear(filename):
     chi_square = sum(chi_square_list)
     chi_square_reduced = chi_square / (N - 2)
 
-    # prints
+    # print
     print('a = ' + str(a) + ' +- ' + str(da))
     print('b = ' + str(b) + ' +- ' + str(db))
     print('chi2 = ' + str(chi_square))
     print('chi2_reduced = ' + str(chi_square_reduced))
 
-    #plots
+    #plot
     plot_linear_fit(x,y,dx,dy,a,b,xlabel,ylabel)
 
 

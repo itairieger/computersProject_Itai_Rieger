@@ -2,6 +2,9 @@ from math import *
 import matplotlib.pyplot as plt
 
 def hatfunc(vec, dy):
+    """
+    gets a vector and dy and returns: (sum(vec[i]/dy[i]**2)/sum(1/dy[i]**2))
+    """
     one_over_dy_square = []
     for i in dy:
         one_over_dy_square.append(1 / i ** 2)
@@ -15,6 +18,9 @@ def hatfunc(vec, dy):
 
 
 def plot_linear_fit(x, y, dx, dy, a, b, xlabel, ylabel):
+    """
+    plots data
+    """
     x1 = min(x)
     x2 = max(x)
     x_plot = [x1, x2]
@@ -40,9 +46,10 @@ def get_data(filename):
         rows[i] = row.split(" ")
 
     N = len(rows[0])
-    if any(map(lambda row: len(row) != N, rows)):
-        print('Input file error: Data lists are not the same length.\n')
-        exit(1)
+    for row in rows:
+        if len(row) != N:
+            print('Input file error: Data lists are not the same length.\n')
+            exit(1)
 
     labels = labels.strip().split("\n")
     x_label = labels[0][8:]
@@ -50,42 +57,72 @@ def get_data(filename):
 
     return rows, x_label, y_label
 
+def change_to_float(array):
+    """
+    gets an array and changes its type to float
+    """
+    float_array = []
+    for i in array:
+        float_array.append(float(i))
+    return float_array
+
+
+def get_vectors(table):
+    """
+    gets table with data and returns x,y,dx,dy
+    """
+    data = {}
+    for row in table:
+        data[row[0]] = row[1:]
+
+    x = change_to_float(data['x'])
+    y = change_to_float(data['y'])
+    dx = change_to_float(data['dx'])
+    dy = change_to_float(data['dy'])
+
+    return x,y,dx,dy
+
+
+def any_negative(array):
+    """
+    checks if there are negative or 0 in an array
+    """
+    for point in array:
+        if point <= 0:
+            return True
+    return False
+
+def get_a_and_b(xhat, yhat, xyhat, x_square_hat, dy_square_hat,N):
+    """
+    returns values and uncertainties of a and b
+    """
+    a = (xyhat - xhat * yhat) / (x_square_hat - xhat * xhat)
+    da_square = dy_square_hat / (N * (x_square_hat - xhat * xhat))
+    da = sqrt(da_square)
+    b = yhat - a * xhat
+    db_square = dy_square_hat * x_square_hat / (N * (x_square_hat - xhat * xhat))
+    db = sqrt(db_square)
+    return a,da,b,db
 
 def fit_linear(filename):
+    #get data
     table, xlabel, ylabel = get_data(filename)
 
+    #make data organized by rows
     is_column = table[0][1] in ['x', 'dx', 'y', 'dy']
     if is_column:  # Flip table to rows
         table = zip(*table)
 
-    # All this splitting into x, y, dx, dy move to another function
-    data = {}
-    for row in table:
-        data[row[0]] = map(float, row[1:])
-
-    x = data['x']
-    y = data['y']
-
-    # values
+    #get vectors
+    x,y,dx,dy = get_vectors(table)
     N = len(x)
-    Ny = len(y)
-    Ndx = len(dx)
-    Ndy = len(dy)
-    # checking errors
 
-
-    # Extract this function outside of linear_fit
-    def any_negative(array):
-        for point in array:
-            if point <= 0:
-                return True
-        return False
-
+    #check if all uncertainties are positive
     if any_negative(dx) or any_negative(dy):
         print('Input file error: Not all uncertainties are positive.\n')
         exit(1)
 
-    # Extract to another function
+    # get values
     xy = []
     for i in range(N):
         xy.append(x[i] * y[i])
@@ -96,34 +133,31 @@ def fit_linear(filename):
     for i in dy:
         dy_square.append(i ** 2)
 
-        # hat values
+    # hat values
     xhat = hatfunc(x, dy)
     yhat = hatfunc(y, dy)
     xyhat = hatfunc(xy, dy)
     x_square_hat = hatfunc(x_square, dy)
     dy_square_hat = hatfunc(dy_square, dy)
 
-    # Extract calculations to another function
+    
     # outputs
-    a = (xyhat - xhat * yhat) / (x_square_hat - xhat * xhat)
-    da_square = dy_square_hat / (N * (x_square_hat - xhat * xhat))
-    da = sqrt(da_square)
-    b = yhat - a * xhat
-    db_square = dy_square_hat * x_square_hat / (N * (x_square_hat - xhat * xhat))
-    db = sqrt(db_square)
+    a,da,b,db = get_a_and_b(xhat,yhat,xyhat,x_square_hat,dy_square_hat,N)
+
     chi_square_list = []
     for i in range(N):
         temp_var = ((y[i] - a * x[i] - b) / dy[i]) ** 2
         chi_square_list.append(temp_var)
     chi_square = sum(chi_square_list)
     chi_square_reduced = chi_square / (N - 2)
+
     # prints
     print('a = ' + str(a) + ' +- ' + str(da))
     print('b = ' + str(b) + ' +- ' + str(db))
     print('chi2 = ' + str(chi_square))
     print('chi2_reduced = ' + str(chi_square_reduced))
 
-
+    #plots
     plot_linear_fit(x,y,dx,dy,a,b,xlabel,ylabel)
 
 

@@ -43,7 +43,7 @@ def get_data(filename):
     rows = table.split("\n")
     for i in range(len(rows)):
         row = rows[i]
-        rows[i] = row.split(" ")
+        rows[i] = row.split()
     # check if all vectors have the same length
     N = len(rows[0])
     for row in rows:
@@ -161,5 +161,5 @@ def fit_linear(filename):
     plot_linear_fit(x,y,dx,dy,a,b,xlabel,ylabel)
 
 
-if __name__ == "__main__":
-    fit_linear("input.txt")
+#if __name__ == "__main__":
+    #fit_linear("input.txt")

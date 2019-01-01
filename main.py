@@ -32,14 +32,29 @@ def plot_linear_fit(x, y, dx, dy, a, b, xlabel, ylabel):
     # plt.show()
     plt.savefig("linear_fit.svg")
 
-
-def get_data(filename):
+def plot_chi2_a(x_plot, b_chosen, chi_square_func):
     """
-    Gets filename and returns: 1. 2D array of data split by new lines and ' ' (spaces) 2. axes labels
+    plots chi2 as a function of a for the best b
+    for bonus part
+    """
+    ylabel = 'chi2(a,b = {0:.1f})'.format(b_chosen)
+    plt.plot(x_plot, chi_square_func, color= 'blue')
+    plt.xlabel(xlabel='a')
+    plt.ylabel(ylabel)
+    plt.show()
+    plt.savefig("numeric_sampling.svg")
+
+
+def get_data(filename,bool):
+    """
+    Gets filename and returns: 1. 2D array of data split by new lines and ' ' (spaces) 2. axes labels 3. 2D array of bonus data
     """
     my_file = open(filename, 'r')
     data = my_file.read().lower()
-    table, labels = data.split("\n\n", 1)
+    if bool == 0:
+        table, labels = data.split("\n\n", 1)
+    else:
+        table, labels, params = data.split("\n\n", 2)
     rows = table.split("\n")
     for i in range(len(rows)):
         row = rows[i]
@@ -54,6 +69,13 @@ def get_data(filename):
     labels = labels.strip().split("\n")
     x_label = labels[0][8:]
     y_label = labels[1][8:]
+
+    if bool == 1:
+        parameters = params.split("\n")
+        for i in range(len(parameters)):
+            parameter = parameters[i]
+            parameters[i] = parameter.split()
+        return rows, x_label, y_label, parameters[0:-1]
 
     return rows, x_label, y_label
 
@@ -82,6 +104,19 @@ def get_vectors(table):
 
     return x,y,dx,dy
 
+def get_bonus_data(params):
+    """
+    gets table with bonus data and returns a and b in float type
+    """
+    data = {}
+    for row in params:
+        data[row[0]] = row[1:]
+
+    a = change_to_float(data['a'])
+    b = change_to_float(data['b'])
+
+    return a,b
+
 
 def any_negative(array):
     """
@@ -106,7 +141,7 @@ def get_a_and_b(xhat, yhat, xyhat, x_square_hat, dy_square_hat,N):
 
 def fit_linear(filename):
     #get data
-    table, xlabel, ylabel = get_data(filename)
+    table, xlabel, ylabel = get_data(filename, 0)
 
     #make data organized by rows
     is_column = table[0][1] in ['x', 'dx', 'y', 'dy']
@@ -160,6 +195,95 @@ def fit_linear(filename):
     #plot
     plot_linear_fit(x,y,dx,dy,a,b,xlabel,ylabel)
 
+def search_best_parameter(filename):
+    # get data
+    table, xlabel, ylabel, params = get_data(filename, 1)
 
-#if __name__ == "__main__":
+    # make data organized by rows
+    is_column = table[0][1] in ['x', 'dx', 'y', 'dy']
+    if is_column:  # Flip table to rows
+        table = zip(*table)
+
+    # get vectors
+    x, y, dx, dy = get_vectors(table)
+    N = len(x)
+
+    # check if all uncertainties are positive
+    if any_negative(dx) or any_negative(dy):
+        print('Input file error: Not all uncertainties are positive.\n')
+        exit(1)
+
+    #get a and b data
+    a,b = get_bonus_data(params)
+    a_initial = a[0]
+    a_stepsize = a[2]
+    a_final = a[1]
+    b_initial = b[0]
+    b_stepsize = b[2]
+    b_final = b[1]
+
+    #find the best chi square and the best parameters
+    chi_square_list = []
+    for i in range(N):
+        temp_var = ((y[i] - a_initial * x[i] - b_initial) / dy[i]) ** 2
+        chi_square_list.append(temp_var)
+    chi_square = sum(chi_square_list)
+    chi_square_reduced = chi_square / (N - 2)
+    a_chosen = a_initial
+    b_chosen = b_initial
+
+    #make a_initial smaller than a_final and samr for b
+    if a_final < a_initial:
+        temp = a_final
+        a_final = a_initial
+        a_initial = temp
+        a_stepsize = a_stepsize*(-1)
+    if b_final < b_initial:
+        temp = b_final
+        b_final = b_initial
+        b_initial = temp
+        b_stepsize = b_stepsize*(-1)
+
+    i = a_initial
+    while i < a_final:
+        j = b_initial
+        while j < b_final:
+            chi_square_list = []
+            for inx in range(N):
+                temp_var = ((y[inx] - i * x[inx] - j) / dy[inx]) ** 2
+                chi_square_list.append(temp_var)
+            chi_square_temp = sum(chi_square_list)
+            if chi_square_temp < chi_square:
+                chi_square = chi_square_temp
+                chi_square_reduced = chi_square / (N - 2)
+                a_chosen = i
+                b_chosen = j
+            j = j + b_stepsize
+        i = i + a_stepsize
+    # print
+    print('a = ' + str(a_chosen) + ' +- ' + str(a_stepsize))
+    print('b = ' + str(b_chosen) + ' +- ' + str(b_stepsize))
+    print('chi2 = ' + str(chi_square))
+    print('chi2_reduced = ' + str(chi_square_reduced))
+
+    #create chi square vector for best b
+    chi_square_func = []
+    i = a_initial
+    x_plot = []
+    while i < a_final:
+        x_plot.append(i)
+        chi_square_list = []
+        for inx in range(N):
+            temp_var = ((y[inx] - i * x[inx] - b_chosen) / dy[inx]) ** 2
+            chi_square_list.append(temp_var)
+        chi_square_temp = sum(chi_square_list)
+        chi_square_func.append(chi_square_temp/(N-2))
+        i = i + a_stepsize
+
+    #plot
+    plot_chi2_a(x_plot, b_chosen, chi_square_func)
+
+
+if __name__ == "__main__":
     #fit_linear("input.txt")
+    search_best_parameter('bonus.txt')

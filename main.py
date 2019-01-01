@@ -139,6 +139,19 @@ def get_a_and_b(xhat, yhat, xyhat, x_square_hat, dy_square_hat,N):
     db = sqrt(db_square)
     return a,da,b,db
 
+def chi2_calculator(x,y,dy,a,b):
+    """
+    calculates and returns chi2 and chi2 reduced
+    """
+    N = len(x)
+    chi_list = []
+    for i in range(N):
+        temp_var = ((y[i] - a * x[i] - b) / dy[i]) ** 2
+        chi_list.append(temp_var)
+    chi_square = sum(chi_list)
+    chi_square_reduced = chi_square / (N - 2)
+    return chi_square, chi_square_reduced
+
 def fit_linear(filename):
     #get data
     table, xlabel, ylabel = get_data(filename, 0)
@@ -179,12 +192,9 @@ def fit_linear(filename):
     # outputs
     a,da,b,db = get_a_and_b(xhat,yhat,xyhat,x_square_hat,dy_square_hat,N)
 
-    chi_square_list = []
-    for i in range(N):
-        temp_var = ((y[i] - a * x[i] - b) / dy[i]) ** 2
-        chi_square_list.append(temp_var)
-    chi_square = sum(chi_square_list)
-    chi_square_reduced = chi_square / (N - 2)
+    #get chi2 and chi2 reduced
+    chi_square, chi_square_reduced = chi2_calculator(x,y,dy,a,b)
+
 
     # print
     print('a = ' + str(a) + ' +- ' + str(da))
@@ -223,12 +233,7 @@ def search_best_parameter(filename):
     b_final = b[1]
 
     #find the best chi square and the best parameters
-    chi_square_list = []
-    for i in range(N):
-        temp_var = ((y[i] - a_initial * x[i] - b_initial) / dy[i]) ** 2
-        chi_square_list.append(temp_var)
-    chi_square = sum(chi_square_list)
-    chi_square_reduced = chi_square / (N - 2)
+    chi_square, chi_square_reduced = chi2_calculator(x,y,dy,a_initial,b_initial)
     a_chosen = a_initial
     b_chosen = b_initial
 
@@ -248,11 +253,7 @@ def search_best_parameter(filename):
     while i < a_final:
         j = b_initial
         while j < b_final:
-            chi_square_list = []
-            for inx in range(N):
-                temp_var = ((y[inx] - i * x[inx] - j) / dy[inx]) ** 2
-                chi_square_list.append(temp_var)
-            chi_square_temp = sum(chi_square_list)
+            chi_square_temp, chi_square_reduced_temp = chi2_calculator(x,y,dy,i,j)
             if chi_square_temp < chi_square:
                 chi_square = chi_square_temp
                 chi_square_reduced = chi_square / (N - 2)
@@ -272,18 +273,14 @@ def search_best_parameter(filename):
     x_plot = []
     while i < a_final:
         x_plot.append(i)
-        chi_square_list = []
-        for inx in range(N):
-            temp_var = ((y[inx] - i * x[inx] - b_chosen) / dy[inx]) ** 2
-            chi_square_list.append(temp_var)
-        chi_square_temp = sum(chi_square_list)
-        chi_square_func.append(chi_square_temp/(N-2))
+        chi_square_temp, chi_square_reduced_temp = chi2_calculator(x,y,dy,i,b_chosen)
+        chi_square_func.append(chi_square_temp)
         i = i + a_stepsize
 
     #plot
     plot_chi2_a(x_plot, b_chosen, chi_square_func)
 
 
-#if __name__ == "__main__":
+if __name__ == "__main__":
     #fit_linear("input.txt")
-    #search_best_parameter('bonus.txt')
+    search_best_parameter('bonus.txt')

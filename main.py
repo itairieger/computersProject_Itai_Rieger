@@ -281,6 +281,6 @@ def search_best_parameter(filename):
     plot_chi2_a(x_plot, b_chosen, chi_square_func)
 
 
-if __name__ == "__main__":
+#if __name__ == "__main__":
     #fit_linear("input.txt")
     #search_best_parameter('bonus.txt')

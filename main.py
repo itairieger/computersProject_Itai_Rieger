@@ -38,10 +38,12 @@ def plot_chi2_a(x_plot, b_chosen, chi_square_func):
     for bonus part
     """
     ylabel = 'chi2(a,b = {0:.1f})'.format(b_chosen)
+    plt.figure('new figure in case they run both regular and bonus together')
     plt.plot(x_plot, chi_square_func, color= 'blue')
     plt.xlabel(xlabel='a')
-    plt.ylabel(ylabel)
-    plt.show()
+    plt.ylabel(ylabel=ylabel)
+    plt.ticklabel_format(axis='y', style='sci', scilimits=(3,3))
+    #plt.show()
     plt.savefig("numeric_sampling.svg")
 
 
@@ -50,12 +52,12 @@ def get_data(filename,bool):
     Gets filename and returns: 1. 2D array of data split by new lines and ' ' (spaces) 2. axes labels 3. 2D array of bonus data
     """
     my_file = open(filename, 'r')
-    data = my_file.read().lower()
+    data = my_file.read()
     if bool == 0:
         table, labels = data.split("\n\n", 1)
     else:
         table, labels, params = data.split("\n\n", 2)
-    rows = table.split("\n")
+    rows = table.lower().split("\n")
     for i in range(len(rows)):
         row = rows[i]
         rows[i] = row.split()

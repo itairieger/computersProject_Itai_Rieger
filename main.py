@@ -283,4 +283,4 @@ def search_best_parameter(filename):
 
 if __name__ == "__main__":
     #fit_linear("input.txt")
-    search_best_parameter('bonus.txt')
+    #search_best_parameter('bonus.txt')

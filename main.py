@@ -1,4 +1,5 @@
 from math import *
+from sys import *
 import matplotlib.pyplot as plt
 
 def hatfunc(vec, dy):
